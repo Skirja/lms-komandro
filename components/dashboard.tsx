@@ -168,11 +168,10 @@ export default function DashboardPage() {
               <CardDescription>Tenggat: {assignment.dueDate}</CardDescription>
             </CardHeader>
             <CardFooter className="flex justify-between items-center">
-              <span className={`px-3 py-1 rounded-full text-sm ${
-                assignment.status === "Selesai" 
-                  ? "bg-green-100 text-green-800" 
-                  : "bg-yellow-100 text-yellow-800"
-              }`}>
+              <span className={`px-3 py-1 rounded-full text-sm ${assignment.status === "Selesai"
+                ? "bg-green-100 text-green-800"
+                : "bg-yellow-100 text-yellow-800"
+                }`}>
                 {assignment.status}
               </span>
               <Button variant="outline">Lihat Detail</Button>
@@ -194,13 +193,12 @@ export default function DashboardPage() {
               <CardDescription>Deadline: {project.deadline}</CardDescription>
             </CardHeader>
             <CardFooter className="flex justify-between items-center">
-              <span className={`px-3 py-1 rounded-full text-sm ${
-                project.status === "Selesai" 
-                  ? "bg-green-100 text-green-800" 
-                  : project.status === "Dalam Pengerjaan"
+              <span className={`px-3 py-1 rounded-full text-sm ${project.status === "Selesai"
+                ? "bg-green-100 text-green-800"
+                : project.status === "Dalam Pengerjaan"
                   ? "bg-blue-100 text-blue-800"
                   : "bg-gray-100 text-gray-800"
-              }`}>
+                }`}>
                 {project.status}
               </span>
               <Button>Upload Projek</Button>
@@ -249,11 +247,10 @@ export default function DashboardPage() {
             <li key={id}>
               <button
                 onClick={() => setActiveMenu(id)}
-                className={`flex items-center space-x-2 w-full py-2 px-3 rounded-lg transition-colors ${
-                  activeMenu === id 
-                    ? "bg-blue-50 text-blue-600" 
-                    : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
-                }`}
+                className={`flex items-center space-x-2 w-full py-2 px-3 rounded-lg transition-colors ${activeMenu === id
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                  }`}
               >
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>
@@ -293,11 +290,11 @@ export default function DashboardPage() {
       {/* Mobile Header */}
       <header className="bg-white p-4 flex justify-between items-center md:hidden">
         <Image
-          src="/placeholder.svg"
+          src="/images/Logo.png"
           alt="LMS Logo"
-          width={96}
-          height={32}
-          className="h-8"
+          width={40}
+          height={40}
+          className="h-10"
         />
         <Sheet>
           <SheetTrigger asChild>

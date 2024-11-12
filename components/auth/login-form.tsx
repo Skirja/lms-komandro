@@ -18,15 +18,45 @@ import { LockKeyhole, Mail } from "lucide-react"
 export function LoginForm() {
   const router = useRouter()
   const [isLoading, setIsLoading] = React.useState<boolean>(false)
+  const [error, setError] = React.useState<string>("")
 
-  async function onSubmit(event: React.SyntheticEvent) {
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsLoading(true)
+    setError("")
 
-    setTimeout(() => {
+    const formData = new FormData(event.currentTarget)
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Something went wrong")
+      }
+
+      // Store user data and token
+      localStorage.setItem("token", data.token)
+      localStorage.setItem("user", JSON.stringify(data.user))
+
+      // Redirect based on role
+      if (data.user.role === "ADMIN") {
+        router.push("/admin")
+      } else {
+        router.push("/dashboard")
+      }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Something went wrong")
+    } finally {
       setIsLoading(false)
-      router.push('/dashboard')
-    }, 1000)
+    }
   }
 
   return (
@@ -39,6 +69,11 @@ export function LoginForm() {
       </CardHeader>
       <form onSubmit={onSubmit}>
         <CardContent className="grid gap-4">
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+              {error}
+            </div>
+          )}
           <div className="grid gap-2">
             <Label htmlFor="email" className="text-base">
               Email
@@ -47,10 +82,12 @@ export function LoginForm() {
               <Mail className="absolute left-3 h-5 w-5 text-gray-400" />
               <Input
                 id="email"
-                type="email" 
+                name="email"
+                type="email"
                 placeholder="nama@example.com"
                 disabled={isLoading}
                 className="pl-10"
+                required
               />
             </div>
           </div>
@@ -62,17 +99,19 @@ export function LoginForm() {
               <LockKeyhole className="absolute left-3 h-5 w-5 text-gray-400" />
               <Input
                 id="password"
+                name="password"
                 type="password"
                 disabled={isLoading}
                 className="pl-10"
+                required
               />
             </div>
           </div>
         </CardContent>
         <CardFooter>
-          <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-base py-5" 
-            type="submit" 
+          <Button
+            className="w-full text-base py-5"
+            type="submit"
             disabled={isLoading}
           >
             {isLoading ? (

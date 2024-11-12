@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import Image from "next/image"
+import { handleLogout } from "@/lib/utils/auth"
 
 export default function AdminDashboardPage() {
   const [activeMenu, setActiveMenu] = useState("beranda")
@@ -197,94 +198,287 @@ export default function AdminDashboardPage() {
     </>
   )
 
-  const ManageUsersContent = () => (
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Manajemen User</h1>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah User
-            </Button>
-          </DialogTrigger>
+  const ManageUsersContent = () => {
+    const [users, setUsers] = React.useState<any[]>([])
+    const [isLoading, setIsLoading] = React.useState(false)
+    const [error, setError] = React.useState("")
+    const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false)
+    const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
+    const [selectedUser, setSelectedUser] = React.useState<any>(null)
+
+    // Fetch users
+    const fetchUsers = async () => {
+      try {
+        setIsLoading(true)
+        const res = await fetch('/api/users')
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+        setUsers(data)
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to fetch users')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    // Add user
+    const handleAddUser = async (formData: FormData) => {
+      try {
+        const userData = {
+          name: formData.get('name') as string,
+          email: formData.get('email') as string,
+          password: formData.get('password') as string,
+          track: formData.get('track') as string,
+          role: 'STUDENT'
+        }
+
+        const res = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData)
+        })
+
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+
+        fetchUsers()
+        setIsAddDialogOpen(false)
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to add user')
+      }
+    }
+
+    // Update user
+    const handleUpdateUser = async (formData: FormData) => {
+      try {
+        const userData = {
+          name: formData.get('name') as string,
+          email: formData.get('email') as string,
+          track: formData.get('track') as string
+        }
+
+        const res = await fetch(`/api/users/${selectedUser.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData)
+        })
+
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+
+        fetchUsers()
+        setIsEditDialogOpen(false)
+        setSelectedUser(null)
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to update user')
+      }
+    }
+
+    // Delete user
+    const handleDeleteUser = async (id: string) => {
+      if (!confirm('Are you sure you want to delete this user?')) return
+
+      try {
+        const res = await fetch(`/api/users/${id}`, {
+          method: 'DELETE'
+        })
+
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+
+        fetchUsers()
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to delete user')
+      }
+    }
+
+    React.useEffect(() => {
+      fetchUsers()
+    }, [])
+
+    return (
+      <>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Manajemen User</h1>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah User
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Tambah User Baru</DialogTitle>
+                <DialogDescription>
+                  Masukkan informasi user yang akan ditambahkan
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={(e) => {
+                e.preventDefault()
+                handleAddUser(new FormData(e.currentTarget))
+              }}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="name">Nama Lengkap</Label>
+                    <Input id="name" name="name" required />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" name="email" type="email" required />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" name="password" type="password" required />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="track">Penjurusan</Label>
+                    <Select name="track" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih penjurusan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="WEB">Web</SelectItem>
+                        <SelectItem value="ANDROID">Android</SelectItem>
+                        <SelectItem value="UI_UX">UI/UX</SelectItem>
+                        <SelectItem value="DEVOPS">DevOps</SelectItem>
+                        <SelectItem value="IOT">IoT</SelectItem>
+                        <SelectItem value="QUALITY_ASSURANCE">Quality Assurance</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Simpan</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-md mb-6">
+            {error}
+          </div>
+        )}
+
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nama</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Track</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center">
+                      Tidak ada data user
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.track}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedUser(user)
+                            setIsEditDialogOpen(true)
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-600"
+                          onClick={() => handleDeleteUser(user.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Edit Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Tambah User Baru</DialogTitle>
+              <DialogTitle>Edit User</DialogTitle>
               <DialogDescription>
-                Masukkan informasi user yang akan ditambahkan
+                Update informasi user
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Nama Lengkap</Label>
-                <Input id="name" />
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              handleUpdateUser(new FormData(e.currentTarget))
+            }}>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-name">Nama Lengkap</Label>
+                  <Input
+                    id="edit-name"
+                    name="name"
+                    defaultValue={selectedUser?.name}
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-email">Email</Label>
+                  <Input
+                    id="edit-email"
+                    name="email"
+                    type="email"
+                    defaultValue={selectedUser?.email}
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-track">Penjurusan</Label>
+                  <Select name="track" defaultValue={selectedUser?.track} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih penjurusan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="WEB">Web</SelectItem>
+                      <SelectItem value="ANDROID">Android</SelectItem>
+                      <SelectItem value="UI_UX">UI/UX</SelectItem>
+                      <SelectItem value="DEVOPS">DevOps</SelectItem>
+                      <SelectItem value="IOT">IoT</SelectItem>
+                      <SelectItem value="QUALITY_ASSURANCE">Quality Assurance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="track">Penjurusan</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih penjurusan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="web">Web</SelectItem>
-                    <SelectItem value="android">Android</SelectItem>
-                    <SelectItem value="uiux">UI/UX</SelectItem>
-                    <SelectItem value="devops">DevOps</SelectItem>
-                    <SelectItem value="iot">IoT</SelectItem>
-                    <SelectItem value="qa">Quality Assurance</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Simpan</Button>
-            </DialogFooter>
+              <DialogFooter>
+                <Button type="submit">Update</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Track</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.track}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-red-600">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </>
-  )
+      </>
+    )
+  }
 
   const ManageMaterialsContent = () => (
     <>
@@ -538,9 +732,9 @@ export default function AdminDashboardPage() {
               <button
                 onClick={() => setActiveMenu(id)}
                 className={`flex items-center space-x-2 w-full py-2 px-3 rounded-lg transition-colors ${
-                  activeMenu === id 
-                    ? "bg-blue-50 text-blue-600" 
-                    : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                  activeMenu === id
+                    ? "bg-green-50 text-green-600"
+                    : "text-gray-700 hover:text-green-600 hover:bg-green-50"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -566,7 +760,7 @@ export default function AdminDashboardPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Keluar</span>
             </DropdownMenuItem>

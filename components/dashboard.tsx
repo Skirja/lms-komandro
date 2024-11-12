@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Book, ChevronUp, Home, Layout, LogOut, Menu, User, ArrowRight } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -22,9 +22,23 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Image from "next/image"
+import { handleLogout } from "@/lib/utils/auth"
 
 export default function DashboardPage() {
   const [activeMenu, setActiveMenu] = useState("beranda")
+  const [user, setUser] = useState<{
+    name: string;
+    email: string;
+    track?: string;
+  } | null>(null)
+
+  // Load user data from localStorage when component mounts
+  useEffect(() => {
+    const userData = localStorage.getItem('user')
+    if (userData) {
+      setUser(JSON.parse(userData))
+    }
+  }, [])
 
   // Dummy data untuk berbagai konten
   const exercises = [
@@ -86,7 +100,9 @@ export default function DashboardPage() {
         <p>Ada tugas baru yang perlu diselesaikan. Silakan cek halaman Latihan.</p>
       </div>
 
-      <h1 className="text-2xl font-bold mb-6">Selamat datang kembali, John!</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        Selamat datang kembali, {user?.name?.split(' ')[0] || 'User'}!
+      </h1>
 
       <section className="bg-white p-6 rounded-lg shadow mb-6">
         <h2 className="text-xl font-semibold mb-4">Progres Belajar</h2>
@@ -174,7 +190,7 @@ export default function DashboardPage() {
                 }`}>
                 {assignment.status}
               </span>
-              <Button variant="outline">Lihat Detail</Button>
+              <Button variant="secondary">Lihat Detail</Button>
             </CardFooter>
           </Card>
         ))}
@@ -248,8 +264,8 @@ export default function DashboardPage() {
               <button
                 onClick={() => setActiveMenu(id)}
                 className={`flex items-center space-x-2 w-full py-2 px-3 rounded-lg transition-colors ${activeMenu === id
-                  ? "bg-blue-50 text-blue-600"
-                  : "text-gray-700 hover:text-blue-600 hover:bg-blue-50"
+                  ? "bg-green-50 text-green-600"
+                  : "text-gray-700 hover:text-green-600 hover:bg-green-50"
                   }`}
               >
                 <Icon className="h-5 w-5" />
@@ -265,17 +281,19 @@ export default function DashboardPage() {
             <Button variant="ghost" className="w-full justify-start">
               <Avatar className="w-8 h-8 mr-2">
                 <AvatarImage src="/placeholder.svg" alt="User" />
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarFallback>
+                  {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                </AvatarFallback>
               </Avatar>
               <div className="flex-grow text-left">
-                <p className="font-semibold">John Doe</p>
-                <p className="text-sm text-gray-500">student@example.com</p>
+                <p className="font-semibold">{user?.name || 'Loading...'}</p>
+                <p className="text-sm text-gray-500">{user?.email || 'Loading...'}</p>
               </div>
               <ChevronUp className="h-5 w-5 text-gray-500" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Keluar</span>
             </DropdownMenuItem>

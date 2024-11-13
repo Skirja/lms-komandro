@@ -221,13 +221,14 @@ export default function AdminDashboardPage() {
   )
 
   const ManageUsersContent = () => {
-    // Update these state declarations with proper types
     const [users, setUsers] = React.useState<User[]>([])
     const [isLoading, setIsLoading] = React.useState(false)
     const [error, setError] = React.useState("")
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
     const [selectedUser, setSelectedUser] = React.useState<User | null>(null)
+    const [selectedTrack, setSelectedTrack] = useState<string>("all")
+    const [searchQuery, setSearchQuery] = useState<string>("")
 
     // Fetch users
     const fetchUsers = async () => {
@@ -319,6 +320,19 @@ export default function AdminDashboardPage() {
       fetchUsers()
     }, [])
 
+    // Filter users
+    const filteredUsers = users.filter(user => {
+      const trackMatch = selectedTrack === "all" || 
+        user.track.toLowerCase() === selectedTrack.toLowerCase()
+      
+      const searchMatch = (
+        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      
+      return trackMatch && searchMatch
+    })
+
     return (
       <>
         <div className="flex justify-between items-center mb-6">
@@ -385,6 +399,36 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
+        <div className="mb-4 flex gap-4 items-end">
+          <div className="flex-1">
+            <Label htmlFor="search-user">Cari User</Label>
+            <Input
+              id="search-user"
+              placeholder="Cari nama atau email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+          <div>
+            <Label htmlFor="track-filter">Filter Track</Label>
+            <Select value={selectedTrack} onValueChange={setSelectedTrack}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Pilih track" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Track</SelectItem>
+                <SelectItem value="web">Web</SelectItem>
+                <SelectItem value="android">Android</SelectItem>
+                <SelectItem value="ui_ux">UI/UX</SelectItem>
+                <SelectItem value="devops">DevOps</SelectItem>
+                <SelectItem value="iot">IoT</SelectItem>
+                <SelectItem value="quality_assurance">Quality Assurance</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <Card>
           <CardContent className="p-0">
             <Table>
@@ -403,14 +447,14 @@ export default function AdminDashboardPage() {
                       Loading...
                     </TableCell>
                   </TableRow>
-                ) : users.length === 0 ? (
+                ) : filteredUsers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center">
                       Tidak ada data user
                     </TableCell>
                   </TableRow>
                 ) : (
-                  users.map((user) => (
+                  filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
@@ -503,179 +547,270 @@ export default function AdminDashboardPage() {
     )
   }
 
-  const ManageMaterialsContent = () => (
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Manajemen Materi</h1>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Materi
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Tambah Materi Baru</DialogTitle>
-              <DialogDescription>
-                Masukkan informasi materi pembelajaran
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Judul Materi</Label>
-                <Input id="title" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="track">Track</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih track" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="web">Web</SelectItem>
-                    <SelectItem value="android">Android</SelectItem>
-                    <SelectItem value="uiux">UI/UX</SelectItem>
-                    <SelectItem value="devops">DevOps</SelectItem>
-                    <SelectItem value="iot">IoT</SelectItem>
-                    <SelectItem value="qa">Quality Assurance</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Deskripsi</Label>
-                <Input id="description" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="content">Konten</Label>
-                <Input id="content" type="file" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Simpan</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+  const ManageMaterialsContent = () => {
+    const [selectedTrack, setSelectedTrack] = useState<string>("all")
+    const [searchQuery, setSearchQuery] = useState<string>("")
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Judul</TableHead>
-                <TableHead>Track</TableHead>
-                <TableHead>Deskripsi</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {learningMaterials.map((material) => (
-                <TableRow key={material.id}>
-                  <TableCell>{material.title}</TableCell>
-                  <TableCell>{material.track}</TableCell>
-                  <TableCell>{material.description}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-red-600">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+    const filteredMaterials = learningMaterials.filter(material => {
+      const trackMatch = selectedTrack === "all" || 
+        material.track.toLowerCase() === selectedTrack.toLowerCase()
+      
+      const searchMatch = (
+        material.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        material.description.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      
+      return trackMatch && searchMatch
+    })
+
+    return (
+      <>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Manajemen Materi</h1>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah Materi
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Tambah Materi Baru</DialogTitle>
+                <DialogDescription>
+                  Masukkan informasi materi pembelajaran
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Judul Materi</Label>
+                  <Input id="title" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="track">Track</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih track" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="web">Web</SelectItem>
+                      <SelectItem value="android">Android</SelectItem>
+                      <SelectItem value="uiux">UI/UX</SelectItem>
+                      <SelectItem value="devops">DevOps</SelectItem>
+                      <SelectItem value="iot">IoT</SelectItem>
+                      <SelectItem value="qa">Quality Assurance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Deskripsi</Label>
+                  <Input id="description" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="content">Konten</Label>
+                  <Input id="content" type="file" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="mb-4 flex gap-4 items-end">
+          <div className="flex-1">
+            <Label htmlFor="search-material">Cari Materi</Label>
+            <Input
+              id="search-material"
+              placeholder="Cari judul materi..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+          <div>
+            <Label htmlFor="track-filter">Filter Track</Label>
+            <Select value={selectedTrack} onValueChange={setSelectedTrack}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Pilih track" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Track</SelectItem>
+                <SelectItem value="web">Web</SelectItem>
+                <SelectItem value="android">Android</SelectItem>
+                <SelectItem value="ui_ux">UI/UX</SelectItem>
+                <SelectItem value="devops">DevOps</SelectItem>
+                <SelectItem value="iot">IoT</SelectItem>
+                <SelectItem value="quality_assurance">Quality Assurance</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Judul</TableHead>
+                  <TableHead>Track</TableHead>
+                  <TableHead>Deskripsi</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </>
-  )
+              </TableHeader>
+              <TableBody>
+                {filteredMaterials.map((material) => (
+                  <TableRow key={material.id}>
+                    <TableCell>{material.title}</TableCell>
+                    <TableCell>{material.track}</TableCell>
+                    <TableCell>{material.description}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-red-600">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </>
+    )
+  }
 
-  const ManageAssignmentsContent = () => (
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Manajemen Latihan</h1>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Latihan
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Tambah Latihan Baru</DialogTitle>
-              <DialogDescription>
-                Masukkan informasi latihan atau quiz
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Judul Latihan</Label>
-                <Input id="title" />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="track">Track</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih track" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="web">Web</SelectItem>
-                    <SelectItem value="android">Android</SelectItem>
-                    <SelectItem value="uiux">UI/UX</SelectItem>
-                    <SelectItem value="devops">DevOps</SelectItem>
-                    <SelectItem value="iot">IoT</SelectItem>
-                    <SelectItem value="qa">Quality Assurance</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="dueDate">Tenggat Waktu</Label>
-                <Input id="dueDate" type="date" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Simpan</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+  const ManageAssignmentsContent = () => {
+    const [selectedTrack, setSelectedTrack] = useState<string>("all")
+    const [searchQuery, setSearchQuery] = useState<string>("")
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Judul</TableHead>
-                <TableHead>Track</TableHead>
-                <TableHead>Tenggat</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {assignments.map((assignment) => (
-                <TableRow key={assignment.id}>
-                  <TableCell>{assignment.title}</TableCell>
-                  <TableCell>{assignment.track}</TableCell>
-                  <TableCell>{assignment.dueDate}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-red-600">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+    const filteredAssignments = assignments.filter(assignment => {
+      const trackMatch = selectedTrack === "all" || 
+        assignment.track.toLowerCase() === selectedTrack.toLowerCase()
+      
+      const searchMatch = assignment.title.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      return trackMatch && searchMatch
+    })
+
+    return (
+      <>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Manajemen Latihan</h1>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah Latihan
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Tambah Latihan Baru</DialogTitle>
+                <DialogDescription>
+                  Masukkan informasi latihan atau quiz
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Judul Latihan</Label>
+                  <Input id="title" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="track">Track</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih track" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="web">Web</SelectItem>
+                      <SelectItem value="android">Android</SelectItem>
+                      <SelectItem value="uiux">UI/UX</SelectItem>
+                      <SelectItem value="devops">DevOps</SelectItem>
+                      <SelectItem value="iot">IoT</SelectItem>
+                      <SelectItem value="qa">Quality Assurance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="dueDate">Tenggat Waktu</Label>
+                  <Input id="dueDate" type="date" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="mb-4 flex gap-4 items-end">
+          <div className="flex-1">
+            <Label htmlFor="search-assignment">Cari Latihan</Label>
+            <Input
+              id="search-assignment"
+              placeholder="Cari judul latihan..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+          <div>
+            <Label htmlFor="track-filter">Filter Track</Label>
+            <Select value={selectedTrack} onValueChange={setSelectedTrack}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Pilih track" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Track</SelectItem>
+                <SelectItem value="web">Web</SelectItem>
+                <SelectItem value="android">Android</SelectItem>
+                <SelectItem value="ui_ux">UI/UX</SelectItem>
+                <SelectItem value="devops">DevOps</SelectItem>
+                <SelectItem value="iot">IoT</SelectItem>
+                <SelectItem value="quality_assurance">Quality Assurance</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Judul</TableHead>
+                  <TableHead>Track</TableHead>
+                  <TableHead>Tenggat</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </>
-  )
+              </TableHeader>
+              <TableBody>
+                {filteredAssignments.map((assignment) => (
+                  <TableRow key={assignment.id}>
+                    <TableCell>{assignment.title}</TableCell>
+                    <TableCell>{assignment.track}</TableCell>
+                    <TableCell>{assignment.dueDate}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon">
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-red-600">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </>
+    )
+  }
 
   const ManageSubmissionsContent = () => {
     const [selectedTrack, setSelectedTrack] = useState<string>("all")

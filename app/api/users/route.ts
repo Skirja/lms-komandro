@@ -7,8 +7,14 @@ export async function GET() {
     const users = await UserService.getAllUsers()
     return NextResponse.json(users)
   } catch (error) {
+    console.error('Detailed error in GET /api/users:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    })
+    
     return NextResponse.json(
-      { error: 'Failed to fetch users' },
+      { error: 'Failed to fetch users', details: error.message },
       { status: 500 }
     )
   }

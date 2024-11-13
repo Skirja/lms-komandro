@@ -1,8 +1,6 @@
-import { PrismaClient, User } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { hash, compare } from 'bcryptjs'
 import { Role, Track } from '@/lib/constants'
-
-const prisma = new PrismaClient()
 
 export class UserService {
   // Create user
@@ -37,18 +35,31 @@ export class UserService {
 
   // Get all users
   static async getAllUsers() {
-    return prisma.user.findMany({
-      where: {
-        role: 'STUDENT'
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        track: true,
-        role: true
-      }
-    })
+    try {
+      const users = await prisma.user.findMany({
+        where: {
+          role: 'STUDENT'
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          track: true,
+          role: true
+        }
+      })
+      
+      console.log('Users fetched successfully:', users.length)
+      return users
+      
+    } catch (error) {
+      console.error('Detailed error in getAllUsers:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      })
+      throw error // Re-throw to be handled by the API route
+    }
   }
 
   // Get users by track

@@ -1,9 +1,9 @@
 "use client"
 
 import React, { useState } from "react"
-import { 
-  Users, ChevronUp, Home, Layout, LogOut, Menu, BookOpen, 
-  Bell, Upload, Plus, Download, Pencil, Trash2 
+import {
+  Users, ChevronUp, Home, Layout, LogOut, Menu, BookOpen,
+  Upload, Plus, Download, Pencil, Trash2
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -43,6 +43,26 @@ import {
 } from "@/components/ui/select"
 import Image from "next/image"
 import { handleLogout } from "@/lib/utils/auth"
+
+// Add this interface near the top of the file, before the component
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  track: string;
+  role: 'ADMIN' | 'STUDENT';
+}
+
+// Tambahkan interface untuk submission
+interface Submission {
+  id: number;
+  studentName: string;
+  projectTitle: string;
+  track: string;
+  submissionDate: string;
+  fileUrl: string;
+  isDone?: boolean; // Tambah properti isDone
+}
 
 export default function AdminDashboardPage() {
   const [activeMenu, setActiveMenu] = useState("beranda")
@@ -84,7 +104,7 @@ export default function AdminDashboardPage() {
     },
   ]
 
-  const submissions = [
+  const submissions: Submission[] = [
     {
       id: 1,
       studentName: "John Doe",
@@ -92,6 +112,7 @@ export default function AdminDashboardPage() {
       track: "Web",
       submissionDate: "2024-03-20",
       fileUrl: "/files/project1.zip",
+      isDone: false
     },
     {
       id: 2,
@@ -100,6 +121,7 @@ export default function AdminDashboardPage() {
       track: "Android",
       submissionDate: "2024-03-22",
       fileUrl: "/files/project2.zip",
+      isDone: false
     },
   ]
 
@@ -199,12 +221,13 @@ export default function AdminDashboardPage() {
   )
 
   const ManageUsersContent = () => {
-    const [users, setUsers] = React.useState<any[]>([])
+    // Update these state declarations with proper types
+    const [users, setUsers] = React.useState<User[]>([])
     const [isLoading, setIsLoading] = React.useState(false)
     const [error, setError] = React.useState("")
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
-    const [selectedUser, setSelectedUser] = React.useState<any>(null)
+    const [selectedUser, setSelectedUser] = React.useState<User | null>(null)
 
     // Fetch users
     const fetchUsers = async () => {
@@ -257,7 +280,7 @@ export default function AdminDashboardPage() {
           track: formData.get('track') as string
         }
 
-        const res = await fetch(`/api/users/${selectedUser.id}`, {
+        const res = await fetch(`/api/users/${selectedUser?.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userData)
@@ -654,41 +677,161 @@ export default function AdminDashboardPage() {
     </>
   )
 
-  const ManageSubmissionsContent = () => (
-    <>
-      <h1 className="text-2xl font-bold mb-6">Pengumpulan Projek</h1>
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead>Judul Project</TableHead>
-                <TableHead>Track</TableHead>
-                <TableHead>Tanggal Submit</TableHead>
-                <TableHead className="text-right">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {submissions.map((submission) => (
-                <TableRow key={submission.id}>
-                  <TableCell>{submission.studentName}</TableCell>
-                  <TableCell>{submission.projectTitle}</TableCell>
-                  <TableCell>{submission.track}</TableCell>
-                  <TableCell>{submission.submissionDate}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+  const ManageSubmissionsContent = () => {
+    const [selectedTrack, setSelectedTrack] = useState<string>("all")
+    const [submissionStatus, setSubmissionStatus] = useState<{ [key: number]: boolean }>({})
+    const [searchQuery, setSearchQuery] = useState<string>("")
+
+    const toggleSubmissionStatus = (submissionId: number) => {
+      setSubmissionStatus(prev => ({
+        ...prev,
+        [submissionId]: !prev[submissionId]
+      }))
+    }
+
+    const filteredSubmissions = submissions
+      .filter(submission => {
+        const trackMatch = selectedTrack === "all" || 
+          submission.track.toLowerCase() === selectedTrack.toLowerCase()
+        
+        const searchMatch = submission.studentName
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+        
+        return trackMatch && searchMatch
+      })
+
+    return (
+      <>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Pengumpulan Projek</h1>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Tambah Projek
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Tambah Projek Baru</DialogTitle>
+                <DialogDescription>
+                  Masukkan informasi projek yang akan ditambahkan
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="title">Judul Projek</Label>
+                  <Input id="title" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="track">Track</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih track" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="web">Web</SelectItem>
+                      <SelectItem value="android">Android</SelectItem>
+                      <SelectItem value="uiux">UI/UX</SelectItem>
+                      <SelectItem value="devops">DevOps</SelectItem>
+                      <SelectItem value="iot">IoT</SelectItem>
+                      <SelectItem value="qa">Quality Assurance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="dueDate">Tenggat Waktu</Label>
+                  <Input id="dueDate" type="date" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="description">Deskripsi</Label>
+                  <Input id="description" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="mb-4 flex gap-4 items-end">
+          <div className="flex-1">
+            <Label htmlFor="search">Cari Nama</Label>
+            <Input
+              id="search"
+              placeholder="Cari nama siswa..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+          <div>
+            <Label htmlFor="track-filter">Filter Track</Label>
+            <Select value={selectedTrack} onValueChange={setSelectedTrack}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Pilih track" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Track</SelectItem>
+                <SelectItem value="web">Web</SelectItem>
+                <SelectItem value="android">Android</SelectItem>
+                <SelectItem value="ui_ux">UI/UX</SelectItem>
+                <SelectItem value="devops">DevOps</SelectItem>
+                <SelectItem value="iot">IoT</SelectItem>
+                <SelectItem value="quality_assurance">Quality Assurance</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nama</TableHead>
+                  <TableHead>Judul Project</TableHead>
+                  <TableHead>Track</TableHead>
+                  <TableHead>Tanggal Submit</TableHead>
+                  <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </>
-  )
+              </TableHeader>
+              <TableBody>
+                {filteredSubmissions.map((submission) => (
+                  <TableRow key={submission.id}>
+                    <TableCell>{submission.studentName}</TableCell>
+                    <TableCell>{submission.projectTitle}</TableCell>
+                    <TableCell>{submission.track}</TableCell>
+                    <TableCell>{submission.submissionDate}</TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button variant="ghost" size="icon">
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={submissionStatus[submission.id] ? "destructive" : "default"}
+                        onClick={() => toggleSubmissionStatus(submission.id)}
+                      >
+                        {submissionStatus[submission.id] ? "Mark as Undone" : "Mark as Done"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {filteredSubmissions.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4">
+                      Tidak ada data submission untuk track ini
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </>
+    )
+  }
 
   const getContent = () => {
     switch (activeMenu) {
@@ -731,11 +874,10 @@ export default function AdminDashboardPage() {
             <li key={id}>
               <button
                 onClick={() => setActiveMenu(id)}
-                className={`flex items-center space-x-2 w-full py-2 px-3 rounded-lg transition-colors ${
-                  activeMenu === id
+                className={`flex items-center space-x-2 w-full py-2 px-3 rounded-lg transition-colors ${activeMenu === id
                     ? "bg-green-50 text-green-600"
                     : "text-gray-700 hover:text-green-600 hover:bg-green-50"
-                }`}
+                  }`}
               >
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>

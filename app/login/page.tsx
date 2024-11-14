@@ -46,7 +46,7 @@ export default function LoginPage() {
                         {/* Mobile Logo - Only shown on small screens */}
                         <div className="flex items-center justify-center mb-4 lg:hidden">
                             <Image
-                                src="/placeholder.svg"
+                                src="/images/Logo.png"
                                 alt="Logo"
                                 width={40}
                                 height={40}

@@ -1,35 +1,90 @@
-import { NextResponse } from 'next/server'
-import { UserService } from '@/lib/services/user.service'
+import { NextResponse } from "next/server"
+import { hash } from "bcryptjs"
+import { db } from "@/lib/db"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
 // GET - Fetch all non-admin users
 export async function GET() {
   try {
-    const users = await UserService.getAllUsers()
-    return NextResponse.json(users)
-  } catch (error) {
-    console.error('Detailed error in GET /api/users:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
+    const session = await getServerSession(authOptions)
+    
+    if (!session) {
+      return new NextResponse("Unauthorized", { status: 401 })
+    }
+
+    if (session.user.role !== "ADMIN") {
+      return new NextResponse("Forbidden", { status: 403 })
+    }
+
+    const users = await db.user.findMany({
+      where: {
+        role: "STUDENT"
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        track: true,
+        createdAt: true,
+      }
     })
     
-    return NextResponse.json(
-      { error: 'Failed to fetch users', details: error.message },
-      { status: 500 }
-    )
+    return NextResponse.json(users)
+  } catch (error) {
+    console.error("[USERS_GET]", error)
+    return new NextResponse("Internal Server Error", { status: 500 })
   }
 }
 
 // POST - Create new user
 export async function POST(req: Request) {
   try {
-    const data = await req.json()
-    const user = await UserService.createUser(data)
+    const session = await getServerSession(authOptions)
+    if (!session || session.user.role !== "ADMIN") {
+      return new NextResponse("Unauthorized", { status: 401 })
+    }
+
+    const body = await req.json()
+    const { name, email, password, role, track } = body
+
+    if (!name || !email || !password || !role) {
+      return new NextResponse("Missing required fields", { status: 400 })
+    }
+
+    // Check if user already exists
+    const existingUser = await db.user.findUnique({
+      where: { email }
+    })
+
+    if (existingUser) {
+      return new NextResponse("User already exists", { status: 400 })
+    }
+
+    const hashedPassword = await hash(password, 10)
+
+    const user = await db.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role,
+        track: track || null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        track: true,
+        createdAt: true,
+      }
+    })
+
     return NextResponse.json(user)
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to create user' },
-      { status: 500 }
-    )
+    console.error("[USERS_POST]", error)
+    return new NextResponse("Internal Server Error", { status: 500 })
   }
-} 
+}

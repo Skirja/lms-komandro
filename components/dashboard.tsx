@@ -23,22 +23,81 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Image from "next/image"
 import { handleLogout } from "@/lib/utils/auth"
+import { useSession } from "next-auth/react"
+
+interface Project {
+  id: string;
+  title: string;
+  track: string;
+  deadline: string;
+  description: string;
+  submissions: Submission[];
+}
+
+interface Submission {
+  userId: string;
+}
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
   const [activeMenu, setActiveMenu] = useState("beranda")
   const [user, setUser] = useState<{
     name: string;
     email: string;
     track?: string;
   } | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Load user data from localStorage when component mounts
   useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (userData) {
-      setUser(JSON.parse(userData))
+    if (session?.user) {
+      setUser({
+        name: session.user.name || '',
+        email: session.user.email || '',
+        track: session.user.track,
+      })
+      fetchProjects()
     }
-  }, [])
+  }, [session])
+
+  const fetchProjects = async () => {
+    try {
+      const response = await fetch('/api/projects')
+      if (!response.ok) {
+        throw new Error('Failed to fetch projects')
+      }
+      const data = await response.json()
+      setProjects(data)
+    } catch (error) {
+      console.error('Error fetching projects:', error)
+    }
+  }
+
+  const handleSubmitProject = async (projectId: string, file: File) => {
+    try {
+      setIsSubmitting(true)
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch(`/api/projects/${projectId}/submissions`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to submit project')
+      }
+
+      await fetchProjects()
+    } catch (error: any) {
+      console.error('Error submitting project:', error)
+      alert(error.message || 'Failed to submit project. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   // Dummy data untuk berbagai konten
   const exercises = [
@@ -76,22 +135,9 @@ export default function DashboardPage() {
     }
   ]
 
-  const projects = [
-    {
-      title: "Project Website Portfolio",
-      deadline: "2024-04-01",
-      status: "Dalam Pengerjaan"
-    },
-    {
-      title: "Project E-Commerce",
-      deadline: "2024-04-15",
-      status: "Belum Dimulai"
-    }
-  ]
-
   // Komponen untuk setiap konten menu
   const BerandaContent = () => (
-    <>
+    <div>
       <div
         className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6"
         role="alert"
@@ -132,11 +178,11 @@ export default function DashboardPage() {
           </TableBody>
         </Table>
       </section>
-    </>
+    </div>
   )
 
   const SumberBelajarContent = () => (
-    <>
+    <div>
       <h1 className="text-2xl font-bold mb-6">Sumber Belajar</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {learningMaterials.map((material, index) => (
@@ -170,11 +216,11 @@ export default function DashboardPage() {
           </Card>
         ))}
       </div>
-    </>
+    </div>
   )
 
   const LatihanContent = () => (
-    <>
+    <div>
       <h1 className="text-2xl font-bold mb-6">Latihan</h1>
       <div className="grid gap-6">
         {assignments.map((assignment, index) => (
@@ -195,34 +241,64 @@ export default function DashboardPage() {
           </Card>
         ))}
       </div>
-    </>
+    </div>
   )
 
   const ProjekContent = () => (
-    <>
-      <h1 className="text-2xl font-bold mb-6">Pengumpulan Projek</h1>
-      <div className="grid gap-6">
-        {projects.map((project, index) => (
-          <Card key={index}>
-            <CardHeader>
-              <CardTitle>{project.title}</CardTitle>
-              <CardDescription>Deadline: {project.deadline}</CardDescription>
-            </CardHeader>
-            <CardFooter className="flex justify-between items-center">
-              <span className={`px-3 py-1 rounded-full text-sm ${project.status === "Selesai"
-                ? "bg-green-100 text-green-800"
-                : project.status === "Dalam Pengerjaan"
-                  ? "bg-blue-100 text-blue-800"
-                  : "bg-gray-100 text-gray-800"
-                }`}>
-                {project.status}
-              </span>
-              <Button>Upload Projek</Button>
-            </CardFooter>
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold">Pengumpulan Projek</h2>
+      <div className="grid gap-4">
+        {projects.map((project) => {
+          const hasSubmitted = project.submissions.some(
+            (submission) => submission.userId === session?.user?.id
+          )
+
+          return (
+            <Card key={project.id}>
+              <CardHeader>
+                <CardTitle>{project.title}</CardTitle>
+                <div className="flex items-center text-sm text-gray-500">
+                  <span className="mr-4">Track: {project.track}</span>
+                  <span>Deadline: {new Date(project.deadline).toLocaleDateString()}</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600 mb-4">{project.description}</p>
+                {hasSubmitted ? (
+                  <div className="bg-green-50 text-green-600 p-3 rounded-md">
+                    Projek sudah dikumpulkan
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept=".zip,.rar"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          handleSubmitProject(project.id, file)
+                        }
+                      }}
+                      disabled={isSubmitting}
+                    />
+                    <p className="text-sm text-gray-500 mt-2">
+                      Format file yang diterima: .zip, .rar
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })}
+        {projects.length === 0 && (
+          <Card>
+            <CardContent className="p-6 text-center text-gray-500">
+              Belum ada projek yang tersedia untuk track Anda
+            </CardContent>
           </Card>
-        ))}
+        )}
       </div>
-    </>
+    </div>
   )
 
   const getContent = () => {
@@ -254,7 +330,7 @@ export default function DashboardPage() {
       </div>
       <nav className="flex-grow p-4">
         <ul className="space-y-4">
-          {[
+          {[/* eslint-disable @typescript-eslint/no-use-before-define */
             { id: "beranda", icon: Home, label: "Beranda" },
             { id: "sumber-belajar", icon: Book, label: "Sumber Belajar" },
             { id: "latihan", icon: Layout, label: "Latihan" },

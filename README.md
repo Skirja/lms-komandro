@@ -1,15 +1,34 @@
-# LMS Komandro
+# Komandro LMS (Learning Management System)
 
-Learning Management System for Komandro built with Next.js and Prisma.
+A modern learning management system built with Next.js 13+, featuring role-based access control and project management capabilities.
+
+## Features
+
+- 🔐 Role-based access control (Admin and Student)
+- 📊 Admin dashboard with user and project management
+- 📝 Project submission and tracking
+- 📈 Analytics and progress tracking
+- 🎨 Modern UI with Shadcn/ui components
+- 🔄 Real-time notifications with Sonner
+
+## Tech Stack
+
+- **Framework**: Next.js 13+
+- **Database**: SQLite with Prisma ORM
+- **Authentication**: NextAuth.js
+- **UI Components**: Shadcn/ui
+- **Styling**: Tailwind CSS
+- **Charts**: Recharts
+- **State Management**: React Hooks
+- **Type Safety**: TypeScript
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
-- [Node.js](https://nodejs.org/) (version 18 or higher)
-- [npm](https://www.npmjs.com/) (usually comes with Node.js)
-- [Git](https://git-scm.com/)
+- Node.js 18+ 
+- npm or yarn
+- Git
 
-## Installation
+## Getting Started
 
 1. Clone the repository:
 ```bash
@@ -20,45 +39,39 @@ cd lms-komandro
 2. Install dependencies:
 ```bash
 npm install
+# or
+yarn install
 ```
 
-## Configuration
-
-1. Create a `.env` file in the project root:
+3. Set up environment variables:
 ```bash
-# Create and open .env file
-cp .env.example .env
-```
-
-2. Add the following environment variables to your `.env` file:
-```plaintext
+# Create a .env file and add:
 DATABASE_URL="file:./prisma/dev.db"
-JWT_SECRET="your-secret-key-here"
+NEXTAUTH_SECRET="your-secret-key"
+NEXTAUTH_URL="http://localhost:3000"
 ```
 
-## Database Setup
-
-1. Generate Prisma Client and create database:
+4. Set up the database:
 ```bash
+# Generate Prisma Client
 npx prisma generate
-npx prisma db push
+
+# Run migrations and seed the database
+npx prisma migrate reset --force
 ```
 
-2. Seed the database with initial data:
-```bash
-npm run db:seed
-```
-
-## Running the Project
-
-1. Start the development server:
+5. Start the development server:
 ```bash
 npm run dev
+# or
+yarn dev
 ```
 
-2. Open [http://localhost:3000](http://localhost:3000) in your browser
+The application will be available at `http://localhost:3000`.
 
-3. Default admin credentials:
+## Default Admin Account
+
+After seeding the database, you can log in with these credentials:
 - Email: admin@komandro.com
 - Password: komandro@admin
 
@@ -66,48 +79,31 @@ npm run dev
 
 ```
 lms-komandro/
-├── app/                    # Next.js app directory
-├── components/             # React components
-├── lib/                    # Utility functions and services
-├── prisma/                # Prisma schema and migrations
-│   ├── schema.prisma      # Database schema
-│   └── migrations/        # Database migrations
-└── scripts/               # Setup and utility scripts
+├── app/                    # App router pages and API routes
+├── components/            # Reusable components
+│   ├── admin/            # Admin dashboard components
+│   └── ui/               # UI components
+├── lib/                  # Utility functions and configurations
+├── prisma/               # Database schema and migrations
+└── scripts/              # Database seed and other scripts
 ```
 
-## Common Issues & Troubleshooting
+## Features in Development
 
-### Database Connection Issues
+- [ ] Advanced project filtering and search
+- [ ] Detailed submission management
+- [ ] User profile management
+- [ ] Advanced reporting features
+- [ ] Email notifications
 
-If you encounter database connection errors:
+## Contributing
 
-1. Ensure your `.env` file exists and contains the correct DATABASE_URL
-2. Try removing the existing database and regenerating:
-```bash
-rm -rf prisma/dev.db
-rm -rf prisma/dev.db-journal
-npx prisma generate
-npx prisma db push
-npm run db:seed
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-3. If Prisma client issues persist:
-```bash
-rm -rf node_modules/.prisma
-npm install
-npx prisma generate
-```
+## License
 
-### Permission Errors
-
-If you encounter EPERM (permission) errors:
-
-1. Close any applications that might be using the database
-2. Run commands with administrator privileges
-3. Check file permissions in the project directory
-
-
-## Author
-
-Created by Muhammad Irza Arifin (Skirja)
-
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

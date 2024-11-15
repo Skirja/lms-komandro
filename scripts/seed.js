@@ -1,9 +1,9 @@
 const { PrismaClient } = require('@prisma/client')
-const { hash } = require('bcryptjs')
+const bcryptjs = require('bcryptjs')
 
 const prisma = new PrismaClient()
 
-// Define constants directly in this file
+// Define constants
 const ADMIN_EMAIL = 'admin@komandro.com'
 const ADMIN_PASSWORD = 'komandro@admin'
 const ADMIN_NAME = 'Admin'
@@ -11,7 +11,7 @@ const ADMIN_NAME = 'Admin'
 async function main() {
   try {
     // Create default admin account
-    const hashedPassword = await hash(ADMIN_PASSWORD, 10)
+    const hashedPassword = await bcryptjs.hash(ADMIN_PASSWORD, 10)
     
     const admin = await prisma.user.upsert({
       where: { email: ADMIN_EMAIL },
@@ -38,4 +38,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect()
-  }) 
+  })

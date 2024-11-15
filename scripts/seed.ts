@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { hash } from 'bcryptjs'
+import * as bcryptjs from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -11,7 +11,7 @@ const ADMIN_NAME = 'Admin'
 async function main() {
   try {
     // Create default admin account
-    const hashedPassword = await hash(ADMIN_PASSWORD, 10)
+    const hashedPassword = await bcryptjs.hash(ADMIN_PASSWORD, 10)
     
     const admin = await prisma.user.upsert({
       where: { email: ADMIN_EMAIL },

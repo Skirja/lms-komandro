@@ -79,7 +79,7 @@ export default function DashboardPage() {
       }
       const data = await response.json()
       // Filter resources based on user's track
-      const filteredResources = data.filter((resource: Resource) => 
+      const filteredResources = data.filter((resource: Resource) =>
         resource.track === session?.user?.track
       )
       setResources(filteredResources)
@@ -215,39 +215,47 @@ export default function DashboardPage() {
   const SumberBelajarContent = () => (
     <div>
       <h1 className="text-2xl font-bold mb-6">Sumber Belajar</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {resources.map((resource) => (
-          <Card key={resource.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <Image
-                src={resource.thumbnail}
-                alt={resource.title}
-                width={300}
-                height={200}
-                className="rounded-t-lg"
-              />
-              <CardTitle>{resource.title}</CardTitle>
-              <CardDescription>{resource.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Track</span>
-                  <span>{resource.track}</span>
+      {resources.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center text-gray-500">
+            Belum ada materi yang tersedia untuk track Anda
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {resources.map((resource) => (
+            <Card key={resource.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <Image
+                  src={resource.thumbnail}
+                  alt={resource.title}
+                  width={300}
+                  height={200}
+                  className="rounded-t-lg"
+                />
+                <CardTitle>{resource.title}</CardTitle>
+                <CardDescription>{resource.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Track</span>
+                    <span>{resource.track}</span>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full" asChild>
-                <a href={`/resources/${resource.id}`}>
-                  Lihat Materi
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+              <CardFooter>
+                <Button className="w-full" asChild>
+                  <a href={`/resources/${resource.id}`}>
+                    Lihat Materi
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   )
 

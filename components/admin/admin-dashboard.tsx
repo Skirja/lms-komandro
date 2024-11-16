@@ -11,6 +11,7 @@ import { useSession, signOut } from "next-auth/react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ChevronUp, LogOut } from "lucide-react"
+import Image from "next/image"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -112,8 +113,17 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Image
+            src="/images/Logo.png"
+            alt="LMS Logo"
+            width={40}
+            height={40}
+            className="h-10"
+          />
+          <span className="font-bold text-lg">LMS Komandro</span>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10">
@@ -131,6 +141,9 @@ export default function AdminDashboard() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
       </div>
       <Tabs defaultValue={activeTab} className="space-y-4" onValueChange={setActiveTab}>
         <TabsList>

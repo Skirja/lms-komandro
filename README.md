@@ -91,11 +91,3 @@ lms-komandro/
 ├── prisma/               # Database schema and migrations
 └── scripts/              # Database seed and other scripts
 ```
-
-## Features in Development
-
-- [ ] Advanced project filtering and search
-- [ ] Detailed submission management
-- [ ] User profile management
-- [ ] Advanced reporting features
-- [ ] Email notifications

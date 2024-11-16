@@ -58,6 +58,10 @@ npx prisma generate
 
 # Run migrations and seed the database
 npx prisma migrate reset --force
+
+npx prisma db push
+
+npx prisma db seed
 ```
 
 5. Start the development server:

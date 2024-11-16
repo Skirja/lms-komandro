@@ -7,17 +7,12 @@ import { RecentSales } from "@/components/recent-sales"
 import { useState, useEffect } from "react"
 import { ProjectsContent } from "./projects-content"
 import { UsersContent } from "./users-content"
-import { useSession, signOut } from "next-auth/react"
+import { ResourcesContent } from "./resources-content"
+import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { ChevronUp, LogOut } from "lucide-react"
+import { ChevronUp } from "lucide-react"
 import Image from "next/image"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 interface User {
   id: string
@@ -35,7 +30,7 @@ interface CreateUserData {
   track?: string
 }
 
-export default function AdminDashboard() {
+export function AdminDashboard() {
   const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState("overview")
   const [users, setUsers] = useState<User[]>([])
@@ -47,6 +42,7 @@ export default function AdminDashboard() {
   }, [])
 
   const fetchUsers = async () => {
+    setIsLoading(true)
     try {
       const response = await fetch("/api/users")
       const data = await response.json()
@@ -57,11 +53,12 @@ export default function AdminDashboard() {
       }
     } catch {
       toast.error("Error fetching users")
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleCreateUser = async (formData: CreateUserData) => {
-    setIsLoading(true)
     try {
       const response = await fetch("/api/users", {
         method: "POST",
@@ -79,8 +76,6 @@ export default function AdminDashboard() {
       }
     } catch {
       toast.error("Error creating user")
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -124,23 +119,13 @@ export default function AdminDashboard() {
           />
           <span className="font-bold text-lg">LMS Komandro</span>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10">
-              <div className="flex flex-col items-start">
-                <span className="font-medium">{session?.user?.name}</span>
-                <span className="text-xs text-muted-foreground">{session?.user?.email}</span>
-              </div>
-              <ChevronUp className="ml-2 h-4 w-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => signOut()}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Keluar</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button variant="ghost" className="relative h-10">
+          <div className="flex flex-col items-start">
+            <span className="font-medium">{session?.user?.name}</span>
+            <span className="text-xs text-muted-foreground">{session?.user?.email}</span>
+          </div>
+          <ChevronUp className="ml-2 h-4 w-4 text-muted-foreground" />
+        </Button>
       </div>
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
@@ -149,6 +134,7 @@ export default function AdminDashboard() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="learning-resources">Learning Resources</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-4">
@@ -217,17 +203,20 @@ export default function AdminDashboard() {
           </div>
         </TabsContent>
         <TabsContent value="users" className="space-y-4">
-          <UsersContent 
+          <UsersContent
             users={users}
             isAddUserOpen={isAddUserOpen}
             setIsAddUserOpen={setIsAddUserOpen}
-            isLoading={isLoading}
             handleCreateUser={handleCreateUser}
             handleDeleteUser={handleDeleteUser}
+            isLoading={isLoading}
           />
         </TabsContent>
         <TabsContent value="projects" className="space-y-4">
           <ProjectsContent />
+        </TabsContent>
+        <TabsContent value="learning-resources" className="space-y-4">
+          <ResourcesContent />
         </TabsContent>
       </Tabs>
     </div>

@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react"
 import { Book, ChevronUp, Home, Layout, LogOut, Menu, User, ArrowRight } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Table,
   TableBody,
@@ -361,8 +360,7 @@ export default function DashboardPage() {
                 className={`flex items-center space-x-2 w-full py-2 px-3 rounded-lg transition-colors ${activeMenu === id
                   ? "bg-green-50 text-green-600"
                   : "text-gray-700 hover:text-green-600 hover:bg-green-50"
-                  }`}
-              >
+                  }`}>
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>
               </button>
@@ -374,12 +372,6 @@ export default function DashboardPage() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="w-full justify-start">
-              <Avatar className="w-8 h-8 mr-2">
-                <AvatarImage src="/placeholder.svg" alt="User" />
-                <AvatarFallback>
-                  {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
               <div className="flex-grow text-left">
                 <p className="font-semibold">{user?.name || 'Loading...'}</p>
                 <p className="text-sm text-gray-500">{user?.email || 'Loading...'}</p>

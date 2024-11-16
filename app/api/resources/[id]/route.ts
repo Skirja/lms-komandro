@@ -3,6 +3,17 @@ import { db } from "@/lib/db"
 import { writeFile } from "fs/promises"
 import { join } from "path"
 
+// Function to clean MDX content
+function cleanMDXContent(content: string): string {
+  return content
+    .replace(/\r\n/g, '\n') // Normalize line endings
+    .replace(/^\/*/, '') // Remove all leading forward slashes
+    .replace(/^https?:\/\//g, '') // Remove URL protocols at the start
+    .replace(/(?:^|\n)\/+/g, '\n') // Remove forward slashes at the start of lines
+    .replace(/```(\w+)?\s*\n\/+/g, '```$1\n') // Clean slashes after code block starts
+    .trim() // Remove extra whitespace
+}
+
 export async function GET(
   req: Request,
   { params }: { params: { id: string } }
@@ -16,7 +27,17 @@ export async function GET(
       return new NextResponse("Resource not found", { status: 404 })
     }
 
-    return NextResponse.json(resource)
+    // Clean up content before sending
+    const cleanedResource = {
+      ...resource,
+      content: cleanMDXContent(resource.content)
+    }
+
+    // Debug log
+    console.log("Original content:", resource.content)
+    console.log("Cleaned content:", cleanedResource.content)
+
+    return NextResponse.json(cleanedResource)
   } catch (error) {
     console.error("Error fetching resource:", error)
     return new NextResponse("Internal Server Error", { status: 500 })
@@ -55,7 +76,7 @@ export async function PUT(
         title,
         description,
         track,
-        content,
+        content: cleanMDXContent(content),
         ...(thumbnailPath && { thumbnail: thumbnailPath }),
       },
     })

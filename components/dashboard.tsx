@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { Book, ChevronUp, Home, Layout, LogOut, Menu, User, ArrowRight } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import {
@@ -37,6 +37,15 @@ interface Submission {
   userId: string;
 }
 
+interface Resource {
+  id: string;
+  title: string;
+  description: string;
+  track: string;
+  content: string;
+  thumbnail: string;
+}
+
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [activeMenu, setActiveMenu] = useState("beranda")
@@ -46,20 +55,10 @@ export default function DashboardPage() {
     track?: string;
   } | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
+  const [resources, setResources] = useState<Resource[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  useEffect(() => {
-    if (session?.user) {
-      setUser({
-        name: session.user.name || '',
-        email: session.user.email || '',
-        track: session.user.track,
-      })
-      fetchProjects()
-    }
-  }, [session])
-
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       const response = await fetch('/api/projects')
       if (!response.ok) {
@@ -70,7 +69,36 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error fetching projects:', error)
     }
-  }
+  }, [])
+
+  const fetchResources = useCallback(async () => {
+    try {
+      const response = await fetch('/api/resources')
+      if (!response.ok) {
+        throw new Error('Failed to fetch resources')
+      }
+      const data = await response.json()
+      // Filter resources based on user's track
+      const filteredResources = data.filter((resource: Resource) => 
+        resource.track === session?.user?.track
+      )
+      setResources(filteredResources)
+    } catch (error) {
+      console.error('Error fetching resources:', error)
+    }
+  }, [session])
+
+  useEffect(() => {
+    if (session?.user) {
+      setUser({
+        name: session.user.name || '',
+        email: session.user.email || '',
+        track: session.user.track,
+      })
+      fetchProjects()
+      fetchResources()
+    }
+  }, [session, fetchProjects, fetchResources])
 
   const handleSubmitProject = async (projectId: string, file: File) => {
     try {
@@ -111,14 +139,6 @@ export default function DashboardPage() {
     })
   }
 
-  // Dummy data untuk berbagai konten
-  const exercises = [
-    { name: "Pengantar Pemrograman", score: 85 },
-    { name: "Struktur Data", score: 92 },
-    { name: "Algoritma Dasar", score: 78 },
-    { name: "Pemrograman Web", score: 88 },
-  ]
-
   const learningMaterials = [
     {
       title: "Dasar Web",
@@ -147,7 +167,6 @@ export default function DashboardPage() {
     }
   ]
 
-  // Komponen untuk setiap konten menu
   const BerandaContent = () => (
     <div>
       <div
@@ -181,10 +200,10 @@ export default function DashboardPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {exercises.map((exercise, index) => (
+            {learningMaterials.map((material, index) => (
               <TableRow key={index}>
-                <TableCell>{exercise.name}</TableCell>
-                <TableCell className="text-right">{exercise.score}</TableCell>
+                <TableCell>{material.title}</TableCell>
+                <TableCell className="text-right">{material.progress}%</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -197,32 +216,33 @@ export default function DashboardPage() {
     <div>
       <h1 className="text-2xl font-bold mb-6">Sumber Belajar</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {learningMaterials.map((material, index) => (
-          <Card key={index} className="hover:shadow-lg transition-shadow">
+        {resources.map((resource) => (
+          <Card key={resource.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <Image
-                src={material.image}
-                alt={material.title}
+                src={resource.thumbnail}
+                alt={resource.title}
                 width={300}
                 height={200}
                 className="rounded-t-lg"
               />
-              <CardTitle>{material.title}</CardTitle>
-              <CardDescription>{material.description}</CardDescription>
+              <CardTitle>{resource.title}</CardTitle>
+              <CardDescription>{resource.description}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Progress</span>
-                  <span>{material.progress}%</span>
+                  <span>Track</span>
+                  <span>{resource.track}</span>
                 </div>
-                <Progress value={material.progress} />
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full">
-                {material.progress === 0 ? 'Mulai Belajar' : 'Lanjutkan'}
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button className="w-full" asChild>
+                <a href={`/resources/${resource.id}`}>
+                  Lihat Materi
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
               </Button>
             </CardFooter>
           </Card>

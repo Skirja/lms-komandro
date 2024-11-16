@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { notFound } from "next/navigation"
-import Image from "next/image"
 import dynamic from "next/dynamic"
+import "@uiw/react-md-editor/markdown-editor.css"
+import "@uiw/react-markdown-preview/markdown.css"
 
 const MDEditor = dynamic(
   () => import("@uiw/react-md-editor"),
@@ -27,6 +27,13 @@ export default function ResourcePage({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Add styles to body when component mounts
+    document.body.style.margin = "0"
+    document.body.style.padding = "0"
+    document.body.style.minHeight = "100vh"
+    document.documentElement.style.backgroundColor = "#f6f8fa"
+    document.body.setAttribute('data-color-mode', 'light')
+    
     const fetchResource = async () => {
       try {
         const response = await fetch(`/api/resources/${params.id}`)
@@ -52,57 +59,56 @@ export default function ResourcePage({ params }: { params: { id: string } }) {
     if (session?.user) {
       fetchResource()
     }
+
+    // Cleanup styles when component unmounts
+    return () => {
+      document.body.style.margin = ""
+      document.body.style.padding = ""
+      document.body.style.minHeight = ""
+      document.documentElement.style.backgroundColor = ""
+      document.body.removeAttribute('data-color-mode')
+    }
   }, [params.id, session])
 
   if (!resource) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <main className="flex justify-center items-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      </div>
+      </main>
+    )
+  }
+
+  if (error) {
+    return (
+      <main className="flex justify-center items-center min-h-screen">
+        <div className="text-red-600 text-center">
+          <h2 className="text-2xl font-bold mb-2">Error Loading Content</h2>
+          <p>{error}</p>
+        </div>
+      </main>
     )
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Card>
-        <CardHeader>
-          <div className="relative w-full h-[300px] mb-4">
-            <Image
-              src={resource.thumbnail}
-              alt={resource.title}
-              fill
-              className="object-cover rounded-t-lg"
-            />
-          </div>
-          <CardTitle className="text-3xl">{resource.title}</CardTitle>
-          <p className="text-gray-500 mt-2">{resource.description}</p>
-          <div className="mt-2">
-            <span className="inline-block bg-blue-100 text-blue-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded">
-              {resource.track}
-            </span>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {error ? (
-            <div className="text-red-600">
-              <h2>Error Loading Content</h2>
-              <p>{error}</p>
-            </div>
-          ) : (
-            <div data-color-mode="light">
-              <div className="wmde-markdown-var">
-                <MDEditor
-                  value={resource.content}
-                  hideToolbar={true}
-                  preview="preview"
-                  height={500}
-                  visibleDragbar={false}
-                />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <MDEditor
+      value={resource.content}
+      hideToolbar={true}
+      preview="preview"
+      visibleDragbar={false}
+      height="100vh"
+      style={{
+        margin: 0,
+        padding: 0,
+        border: 'none',
+        backgroundColor: '#f6f8fa',
+      }}
+      previewOptions={{
+        style: {
+          padding: '2rem',
+          backgroundColor: '#f6f8fa',
+          minHeight: '100vh',
+        }
+      }}
+    />
   )
 }

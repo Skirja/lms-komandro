@@ -91,12 +91,25 @@ export default function DashboardPage() {
       }
 
       await fetchProjects()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error submitting project:', error)
-      alert(error.message || 'Failed to submit project. Please try again.')
+      if (error instanceof Error) {
+        alert(error.message)
+      } else {
+        alert('Failed to submit project. Please try again.')
+      }
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: '2-digit'
+    })
   }
 
   // Dummy data untuk berbagai konten
@@ -227,7 +240,7 @@ export default function DashboardPage() {
           <Card key={index}>
             <CardHeader>
               <CardTitle>{assignment.title}</CardTitle>
-              <CardDescription>Tenggat: {assignment.dueDate}</CardDescription>
+              <CardDescription>Tenggat: {formatDate(assignment.dueDate)}</CardDescription>
             </CardHeader>
             <CardFooter className="flex justify-between items-center">
               <span className={`px-3 py-1 rounded-full text-sm ${assignment.status === "Selesai"
@@ -259,7 +272,7 @@ export default function DashboardPage() {
                 <CardTitle>{project.title}</CardTitle>
                 <div className="flex items-center text-sm text-gray-500">
                   <span className="mr-4">Track: {project.track}</span>
-                  <span>Deadline: {new Date(project.deadline).toLocaleDateString()}</span>
+                  <span>Deadline: {formatDate(project.deadline)}</span>
                 </div>
               </CardHeader>
               <CardContent>
@@ -280,6 +293,12 @@ export default function DashboardPage() {
                         }
                       }}
                       disabled={isSubmitting}
+                      className="block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-green-50 file:text-green-700
+                        hover:file:bg-green-100"
                     />
                     <p className="text-sm text-gray-500 mt-2">
                       Format file yang diterima: .zip, .rar

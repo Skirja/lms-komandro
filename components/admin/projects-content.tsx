@@ -3,13 +3,14 @@ import { Plus, Pencil, Trash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { AddProjectDialog } from "./add-project-dialog"
+import { EditProjectDialog } from "./edit-project-dialog"
 
 interface Project {
   id: string
   title: string
-  description: string
   track: string
   deadline: string
+  description: string
   submissions: Submission[]
 }
 
@@ -33,7 +34,8 @@ interface ProjectFormData {
 
 export function ProjectsContent() {
   const [projects, setProjects] = useState<Project[]>([])
-  const [isAddProjectOpen, setIsAddProjectOpen] = useState(false)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
@@ -43,16 +45,73 @@ export function ProjectsContent() {
   const fetchProjects = async () => {
     try {
       const response = await fetch("/api/projects")
-      const data = await response.json()
-      if (response.ok) {
-        setProjects(data)
-      } else {
-        toast.error("Failed to fetch projects")
+      if (!response.ok) {
+        throw new Error("Failed to fetch projects")
       }
+      const data = await response.json()
+      setProjects(data)
     } catch (error) {
       console.error("Error fetching projects:", error)
-      toast.error("Error fetching projects")
+      toast.error("Failed to fetch projects")
     }
+  }
+
+  const handleDeleteProject = async (projectId: string) => {
+    if (!confirm("Are you sure you want to delete this project?")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete project")
+      }
+
+      toast.success("Project deleted successfully")
+      fetchProjects()
+    } catch (error) {
+      console.error("Error deleting project:", error)
+      toast.error("Failed to delete project")
+    }
+  }
+
+  const handleDownloadSubmission = async (submissionId: string) => {
+    try {
+      const response = await fetch(`/api/submissions/${submissionId}/download`)
+      if (!response.ok) {
+        throw new Error('Failed to download submission')
+      }
+
+      const contentDisposition = response.headers.get('Content-Disposition')
+      const filename = contentDisposition?.split('filename=')[1]?.replace(/"/g, '') || 'submission.zip'
+
+      const blob = await response.blob()
+
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Error downloading submission:', error)
+      alert('Failed to download submission. Please try again.')
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: '2-digit'
+    })
   }
 
   const handleCreateProject = async (formData: ProjectFormData) => {
@@ -72,7 +131,7 @@ export function ProjectsContent() {
 
       if (response.ok) {
         toast.success("Project created successfully")
-        setIsAddProjectOpen(false)
+        setIsAddDialogOpen(false)
         fetchProjects()
       } else {
         const errorData = await response.json()
@@ -86,95 +145,38 @@ export function ProjectsContent() {
     }
   }
 
-  const handleDeleteProject = async (projectId: string) => {
-    try {
-      if (!confirm("Are you sure you want to delete this project?")) return
-
-      const response = await fetch(`/api/projects/${projectId}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        toast.success("Project deleted successfully")
-        fetchProjects()
-      } else {
-        const errorData = await response.json()
-        toast.error(errorData.message || "Failed to delete project")
-      }
-    } catch (err) {
-      console.error("Error deleting project:", err)
-      toast.error("Error deleting project")
-    }
-  }
-
-  const handleDownloadSubmission = async (submissionId: string) => {
-    try {
-      const response = await fetch(`/api/submissions/${submissionId}/download`)
-      if (!response.ok) {
-        throw new Error('Failed to download submission')
-      }
-
-      // Get the filename from the Content-Disposition header
-      const contentDisposition = response.headers.get('Content-Disposition')
-      const filename = contentDisposition?.split('filename=')[1]?.replace(/"/g, '') || 'submission.zip'
-
-      // Convert response to blob
-      const blob = await response.blob()
-
-      // Create download link
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-
-      // Cleanup
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-    } catch (error) {
-      console.error('Error downloading submission:', error)
-      alert('Failed to download submission. Please try again.')
-    }
-  }
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleString()
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Projects Management</h1>
-        <Button className="flex items-center gap-2" onClick={() => setIsAddProjectOpen(true)}>
-          <Plus className="w-4 h-4" />
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Projects</h2>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
           Add Project
         </Button>
       </div>
 
-      <AddProjectDialog
-        isOpen={isAddProjectOpen}
-        onOpenChange={setIsAddProjectOpen}
-        onSubmit={handleCreateProject}
-        isLoading={isLoading}
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid gap-4">
         {projects.map((project) => (
-          <div key={project.id} className="bg-white rounded-lg shadow p-4 space-y-4">
-            <div className="flex justify-between items-start">
+          <div
+            key={project.id}
+            className="bg-white p-6 rounded-lg shadow-sm border"
+          >
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="font-semibold">{project.title}</h3>
-                <p className="text-sm text-gray-500">{project.track}</p>
+                <h3 className="text-lg font-semibold">{project.title}</h3>
+                <div className="text-sm text-gray-500">Track: {project.track}</div>
               </div>
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingProject(project)}
+                >
                   <Pencil className="w-4 h-4" />
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="text-red-600 hover:text-red-700"
                   onClick={() => handleDeleteProject(project.id)}
                 >
                   <Trash className="w-4 h-4" />
@@ -182,11 +184,11 @@ export function ProjectsContent() {
               </div>
             </div>
 
-            <p className="text-sm">{project.description}</p>
-
             <div className="text-sm text-gray-500">
               Deadline: {formatDate(project.deadline)}
             </div>
+
+            <p className="mt-2 text-gray-700">{project.description}</p>
 
             {project.submissions.length > 0 ? (
               <div className="mt-4">
@@ -197,6 +199,7 @@ export function ProjectsContent() {
                       <div>
                         <p className="text-sm font-medium">{submission.user.name}</p>
                         <p className="text-xs text-gray-500">{submission.user.email}</p>
+                        <p className="text-xs text-gray-500">Submitted: {formatDate(submission.createdAt)}</p>
                       </div>
                       <Button
                         onClick={() => handleDownloadSubmission(submission.id)}
@@ -215,6 +218,25 @@ export function ProjectsContent() {
           </div>
         ))}
       </div>
+
+      <AddProjectDialog
+        isOpen={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onSubmit={handleCreateProject}
+        isLoading={isLoading}
+      />
+
+      {editingProject && (
+        <EditProjectDialog
+          project={editingProject}
+          isOpen={true}
+          onClose={() => setEditingProject(null)}
+          onSave={() => {
+            setEditingProject(null)
+            fetchProjects()
+          }}
+        />
+      )}
     </div>
   )
 }
